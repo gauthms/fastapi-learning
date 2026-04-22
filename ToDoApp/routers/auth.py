@@ -1,15 +1,17 @@
 from datetime import timedelta, datetime, timezone
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette import status
 
-from database import SessionLocal
-from models import Users
+from ..database import SessionLocal
+from ..models import Users
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import jwt, JWTError
+from fastapi.templating import Jinja2Templates
+
 
 router = APIRouter(
     prefix="/auth",
@@ -29,6 +31,7 @@ class CreateUserRequest(BaseModel):
     last_name: str
     password: str
     role: str
+    phone_number: str
 
 class Token(BaseModel):
     access_token: str
@@ -42,10 +45,30 @@ def get_db():
         db.close()
 
 db_dependency = Annotated[Session, Depends(get_db)]
+templates = Jinja2Templates(directory="ToDoApp/templates")
+
+### Pages ###
+@router.get('/login-page')
+def render_login_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="login.html",
+        context={}  # Optional: add other variables here
+    )
+
+@router.get('/register-page')
+def render_register_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="register.html",
+        context={}  # Optional: add other variables here
+    )
 
 
+### Endpoints ###
 def authenticate_user(username: str, password: str, db):
     user = db.query(Users).filter(Users.username == username).first()
+    print(bcrypt_context.verify(password, user.hashed_password))
     if not user:
         return False
     if not bcrypt_context.verify(password, user.hashed_password):
@@ -61,9 +84,10 @@ def create_access_token(username: str, user_id: int, role: str, expires_data: ti
 async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload['sub']
-        user_id: int = payload['id']
-        user_role: str = payload['role']
+        username: str = payload.get('sub')
+        user_id: int = payload.get('id')
+        user_role: str = payload.get('role')
+
         if username is None or user_id is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user')
         return {'username': username, 'id': user_id, 'user_role': user_role}
@@ -79,7 +103,8 @@ async def create_user(db: db_dependency, create_user_request: CreateUserRequest)
         last_name=create_user_request.last_name,
         role=create_user_request.role,
         hashed_password=bcrypt_context.hash(create_user_request.password),
-        is_active=True
+        is_active=True,
+        phone_number= create_user_request.phone_number
     )
 
     db.add(create_user_model)

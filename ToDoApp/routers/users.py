@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
 
 
-from models import Users
-from database import SessionLocal
-from routers.auth import get_current_user
+from ..models import Users
+from ..database import SessionLocal
+from .auth import get_current_user
 from passlib.context import CryptContext
 
 
@@ -39,10 +39,10 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 async def get_user(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=404, detail='Authentication Failed')
-    return db.query(Users).filter(Users.id == user.get('id')).all()
+    return db.query(Users).filter(Users.id == user.get('id')).first()
 
 
-@router.put("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/change_password/", status_code=status.HTTP_204_NO_CONTENT)
 async def change_password(user:user_dependency, db: db_dependency, user_verification: UserVerification):
 
     if user is None:
@@ -53,3 +53,14 @@ async def change_password(user:user_dependency, db: db_dependency, user_verifica
     user_model.hashed_password = bcrypt_context.hash(user_verification.new_password)
     db.add(user_model)
     db.commit()
+
+@router.put("/change_phone_number/{new_number}", status_code=status.HTTP_204_NO_CONTENT)
+async def change_phone_number(user:user_dependency, db: db_dependency, new_number: str):
+
+    if user is None:
+        raise HTTPException(status_code=404, detail='Authentication Failed')
+    user_model = db.query(Users).filter(Users.id == user.get('id')).first()
+    user_model.phone_number = new_number
+    db.add(user_model)
+    db.commit()
+
