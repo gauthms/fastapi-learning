@@ -1,11 +1,8 @@
 from typing import Annotated
-
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException
 from starlette import status
-
-
 from ..models import Users
 from ..database import SessionLocal
 from .auth import get_current_user
@@ -63,4 +60,3 @@ async def change_phone_number(user:user_dependency, db: db_dependency, new_numbe
     user_model.phone_number = new_number
     db.add(user_model)
     db.commit()
-

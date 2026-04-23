@@ -5,7 +5,6 @@ from .routers import auth, todos, admin, users
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 
-
 app = FastAPI()
 
 Base.metadata.create_all(bind=engine)
