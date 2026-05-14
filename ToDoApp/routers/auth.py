@@ -66,7 +66,6 @@ def render_register_page(request: Request):
 ### Endpoints ###
 def authenticate_user(username: str, password: str, db):
     user = db.query(Users).filter(Users.username == username).first()
-    print(bcrypt_context.verify(password, user.hashed_password))
     if not user:
         return False
     if not bcrypt_context.verify(password, user.hashed_password):
